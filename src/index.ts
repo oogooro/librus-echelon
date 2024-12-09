@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 config();
 import Librus from 'librus-api';
 import { Annoucement } from './types/annoucement';
+import { Message, MessageDetails } from './types/inbox';
 import { sendWebhook } from './webhook';
 import { colorAdded, colorChanged, colorRemoved } from './colors';
 import logger from './logger';
@@ -110,6 +111,26 @@ const checkCalendar = async (): Promise<void> => {
     }
 }
 
+const checkInbox = async (): Promise<void> => {
+    const messages: Message[] = await client.inbox.listInbox(5);
+    
+    messages.slice(0, 20).forEach((message: Message) => {
+        if (!message.read) {
+            logger.debug(`Found message id ${message.id}`);
+            client.inbox.getMessage(5, message.id)
+                .then((messageDetails: MessageDetails) => {
+                    sendWebhook({
+                        title: messageDetails.title,
+                        description: messageDetails.content,
+                        author: { name: messageDetails.user },
+                        url: 'https://synergia.librus.pl/' + messageDetails.url,
+                    }).catch((err: Error) => logger.error(err));
+                })
+                .catch((err: Error) => logger.error(err));
+        }
+    });
+}
+
 (async () => {
     logger.log({
         level: 'init',
@@ -155,9 +176,12 @@ const checkCalendar = async (): Promise<void> => {
             color: 'magentaBright',
         });
 
+        checkInbox().catch(err => logger.error(err));
+
         setInterval(() => {
             checkAnnouncements().catch(err => logger.error(err));
             checkCalendar().catch(err => logger.error(err));
+            checkInbox().catch(err => logger.error(err));
         }, 10 * 60 * 1000); // every 10 mins
     } else {
         logger.error(new Error('Failed to login.'));
