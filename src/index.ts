@@ -44,7 +44,7 @@ const checkAnnouncements = async (): Promise<void> => {
                     footer: { text: 'Usunięto ogłoszenie', }
                 }).catch(err => logger.error(err));
             });
-        } else { // annoucement changed
+        } else if (results.length){ // annoucement changed
             results.forEach((annoucement) => {
                 sendWebhook({
                     title: annoucement.title,
@@ -54,6 +54,8 @@ const checkAnnouncements = async (): Promise<void> => {
                     footer: { text: 'Zmieniono ogłoszenie', }
                 }).catch(err => logger.error(err));
             });
+        }  else {
+            logger.error(new Error('Could not get difference between old and new annoucements'));
         }
 
         announcements = newAnnoucements;
@@ -96,7 +98,7 @@ const checkCalendar = async (): Promise<void> => {
                     footer: { text: 'Usunięto wydarzenie', }
                 }).catch(err => logger.error(err));
             });
-        } else { // event changed
+        } else if (results.length) { // event changed
             results.forEach((event) => {
                 sendWebhook({
                     title: event.title,
@@ -105,6 +107,8 @@ const checkCalendar = async (): Promise<void> => {
                     footer: { text: 'Zmieniono wydarzenie', }
                 }).catch(err => logger.error(err));
             });
+        } else {
+            logger.error(new Error('Could not get difference between old and new annoucements'));
         }
 
         calendar = newCalendar;
