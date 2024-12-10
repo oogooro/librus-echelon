@@ -116,6 +116,7 @@ const checkCalendar = async (): Promise<void> => {
 }
 
 const checkInbox = async (): Promise<void> => {
+    logger.debug('Checking inbox...');
     const messages: Message[] = await client.inbox.listInbox(5);
     
     messages.slice(0, 20).forEach((message: Message) => {
