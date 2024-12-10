@@ -80,13 +80,15 @@ const checkCalendar = async (): Promise<void> => {
         logger.debug(`Events differ`);
         const results = newCalendar.filter(({ title: c1 }) => !calendar.some(({ title: c2 }) => c2 === c1));
         logger.debug(JSON.stringify(results, null, 2));
+
         if (newCalendar.length > calendar.length) { // event added
             results.forEach((event) => {
                 sendWebhook({
                     title: event.title,
                     description: event.title,
                     color: colorAdded,
-                    footer: { text: 'Dodano wydarzenie', }
+                    footer: { text: 'Dodano wydarzenie', },
+                    timestamp: Date.parse(event.day),
                 }).catch(err => logger.error(err));
             });
         } else if (newCalendar.length < calendar.length) { // event removed
@@ -95,7 +97,8 @@ const checkCalendar = async (): Promise<void> => {
                     title: event.title,
                     description: event.title,
                     color: colorRemoved,
-                    footer: { text: 'Usunięto wydarzenie', }
+                    footer: { text: 'Usunięto wydarzenie', },
+                    timestamp: Date.parse(event.day),
                 }).catch(err => logger.error(err));
             });
         } else if (results.length) { // event changed
@@ -104,7 +107,8 @@ const checkCalendar = async (): Promise<void> => {
                     title: event.title,
                     description: event.title,
                     color: colorChanged,
-                    footer: { text: 'Zmieniono wydarzenie', }
+                    footer: { text: 'Zmieniono wydarzenie', },
+                    timestamp: Date.parse(event.day),
                 }).catch(err => logger.error(err));
             });
         } else {
