@@ -7,6 +7,7 @@ import { sendWebhook } from './webhook';
 import { colorAdded, colorChanged, colorRemoved } from './colors';
 import logger from './logger';
 import { CalendarEvent } from './types/calendar';
+import _, { xorBy } from 'lodash';
 
 const client = new Librus();
 
@@ -22,10 +23,10 @@ const checkAnnouncements = async (): Promise<void> => {
     
     if (JSON.stringify(announcements) !== JSON.stringify(newAnnoucements)) {
         logger.debug(`Annoucements differ`);
-        const results = newAnnoucements.filter(({ content: c1 }) => !announcements.some(({ content: c2 }) => c2 === c1));
-        logger.debug(JSON.stringify(results, null, 2));
+        const difference = xorBy(newAnnoucements, announcements, 'content');
+        logger.debug(JSON.stringify(difference, null, 2));
         if (newAnnoucements.length > announcements.length) { // annoucement added
-            results.forEach((annoucement) => {
+            difference.forEach((annoucement) => {
                 sendWebhook({
                     title: annoucement.title,
                     description: annoucement.content,
@@ -35,7 +36,7 @@ const checkAnnouncements = async (): Promise<void> => {
                 }).catch(err => logger.error(err));
             });
         } else if (newAnnoucements.length < announcements.length) { // annoucement removed
-            results.forEach((annoucement) => {
+            difference.forEach((annoucement) => {
                 sendWebhook({
                     title: annoucement.title,
                     description: annoucement.content,
@@ -44,8 +45,8 @@ const checkAnnouncements = async (): Promise<void> => {
                     footer: { text: 'Usunięto ogłoszenie', }
                 }).catch(err => logger.error(err));
             });
-        } else if (results.length){ // annoucement changed
-            results.forEach((annoucement) => {
+        } else if (difference.length){ // annoucement changed
+            difference.forEach((annoucement) => {
                 sendWebhook({
                     title: annoucement.title,
                     description: annoucement.content,
@@ -78,11 +79,11 @@ const checkCalendar = async (): Promise<void> => {
 
     if (JSON.stringify(newCalendar) !== JSON.stringify(calendar)) {
         logger.debug(`Events differ`);
-        const results = newCalendar.filter(({ title: c1 }) => !calendar.some(({ title: c2 }) => c2 === c1));
-        logger.debug(JSON.stringify(results, null, 2));
+        const difference = xorBy(newCalendar, calendar, 'title');
+        logger.debug(JSON.stringify(difference, null, 2));
 
         if (newCalendar.length > calendar.length) { // event added
-            results.forEach((event) => {
+            difference.forEach((event) => {
                 sendWebhook({
                     title: event.title,
                     description: event.title,
@@ -92,7 +93,7 @@ const checkCalendar = async (): Promise<void> => {
                 }).catch(err => logger.error(err));
             });
         } else if (newCalendar.length < calendar.length) { // event removed
-            results.forEach((event) => {
+            difference.forEach((event) => {
                 sendWebhook({
                     title: event.title,
                     description: event.title,
@@ -101,8 +102,8 @@ const checkCalendar = async (): Promise<void> => {
                     timestamp: Date.parse(event.day),
                 }).catch(err => logger.error(err));
             });
-        } else if (results.length) { // event changed
-            results.forEach((event) => {
+        } else if (difference.length) { // event changed
+            difference.forEach((event) => {
                 sendWebhook({
                     title: event.title,
                     description: event.title,
