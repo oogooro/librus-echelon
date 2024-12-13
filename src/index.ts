@@ -1,65 +1,74 @@
 import { config } from 'dotenv';
 config();
 import Librus from 'librus-api';
-import { Annoucement } from './types/annoucement';
+import { Announcement } from './types/announcement';
 import { Message, MessageDetails } from './types/inbox';
 import { sendWebhook } from './webhook';
-import { colorAdded, colorChanged, colorRemoved } from './colors';
+import { colorAdded, colorRemoved } from './colors';
 import logger from './logger';
 import { CalendarEvent } from './types/calendar';
-import _, { xorBy } from 'lodash';
+import _ from 'lodash';
 
 const client = new Librus();
 
-let announcements: Annoucement[] = [];
+let announcements: Announcement[] = [];
 let calendar: CalendarEvent[] = [];
 let calendarMonth = new Date().getMonth();
 
+const differsBy = <T>(a: T[], b: T[], by: string): {removed: T[], added: T[]} => {
+    return {
+        removed: a.filter((c) => {
+            const c1 = c[by];
+            return !b.some((d) => {
+                const d1 = d[by];
+                return d1 === c1;
+            });
+        }),
+        added: b.filter((c) => {
+            const c1 = c[by];
+            return !a.some((d) => {
+                const d1 = d[by];
+                return d1 === c1;
+            });
+        }),
+    }
+}
+
 const checkAnnouncements = async (): Promise<void> => {
-    logger.debug('Checking annoucements');
-    const newAnnoucements: Annoucement[] = await client.inbox.listAnnouncements();
+    logger.debug('Checking announcements');
+    const newAnnouncements: Announcement[] = await client.inbox.listAnnouncements();
 
-    logger.debug(`Got ${newAnnoucements.length}/${announcements.length} annoucements`);
+    logger.debug(`Got ${newAnnouncements.length}/${announcements.length} announcements`);
     
-    if (JSON.stringify(announcements) !== JSON.stringify(newAnnoucements)) {
-        logger.debug(`Annoucements differ`);
-        const difference = xorBy(newAnnoucements, announcements, 'content');
-        logger.debug(JSON.stringify(difference, null, 2));
-        if (newAnnoucements.length > announcements.length) { // annoucement added
-            difference.forEach((annoucement) => {
-                sendWebhook({
-                    title: annoucement.title,
-                    description: annoucement.content,
-                    author: { name: annoucement.user, },
-                    color: colorAdded,
-                    footer: { text: 'Dodano ogłoszenie', }
-                }).catch(err => logger.error(err));
-            });
-        } else if (newAnnoucements.length < announcements.length) { // annoucement removed
-            difference.forEach((annoucement) => {
-                sendWebhook({
-                    title: annoucement.title,
-                    description: annoucement.content,
-                    author: { name: annoucement.user, },
-                    color: colorRemoved,
-                    footer: { text: 'Usunięto ogłoszenie', }
-                }).catch(err => logger.error(err));
-            });
-        } else if (difference.length){ // annoucement changed
-            difference.forEach((annoucement) => {
-                sendWebhook({
-                    title: annoucement.title,
-                    description: annoucement.content,
-                    author: { name: annoucement.user, },
-                    color: colorChanged,
-                    footer: { text: 'Zmieniono ogłoszenie', }
-                }).catch(err => logger.error(err));
-            });
-        }  else {
-            logger.error(new Error('Could not get difference between old and new annoucements'));
-        }
+    if (JSON.stringify(announcements) !== JSON.stringify(newAnnouncements)) {
+        logger.debug(`Announcements differ`);
 
-        announcements = newAnnoucements;
+        const difference = differsBy<Announcement>(announcements, newAnnouncements, 'content');
+        const { added, removed } = difference;
+
+        logger.debug(JSON.stringify(difference, null, 2));
+
+        added.forEach(announcement => {
+            sendWebhook({
+                title: announcement.title,
+                description: announcement.content,
+                author: { name: announcement.user, },
+                color: colorAdded,
+                footer: { text: 'Dodano ogłoszenie', }
+            }).catch(err => logger.error(err));
+        });
+
+        removed.forEach(announcement => {
+            sendWebhook({
+                title: announcement.title,
+                description: announcement.content,
+                author: { name: announcement.user, },
+                color: colorRemoved,
+                footer: { text: 'Usunięto ogłoszenie', }
+            }).catch(err => logger.error(err));
+        });
+
+        announcements = newAnnouncements;
     }
 }
 
@@ -79,42 +88,31 @@ const checkCalendar = async (): Promise<void> => {
 
     if (JSON.stringify(newCalendar) !== JSON.stringify(calendar)) {
         logger.debug(`Events differ`);
-        const difference = xorBy(newCalendar, calendar, 'title');
+
+        const difference = differsBy<CalendarEvent>(calendar, newCalendar, 'title');
+        const { added, removed } = difference;
+
         logger.debug(JSON.stringify(difference, null, 2));
 
-        if (newCalendar.length > calendar.length) { // event added
-            difference.forEach((event) => {
-                sendWebhook({
-                    title: event.title,
-                    description: event.title,
-                    color: colorAdded,
-                    footer: { text: 'Dodano wydarzenie', },
-                    timestamp: Date.parse(event.day),
-                }).catch(err => logger.error(err));
-            });
-        } else if (newCalendar.length < calendar.length) { // event removed
-            difference.forEach((event) => {
-                sendWebhook({
-                    title: event.title,
-                    description: event.title,
-                    color: colorRemoved,
-                    footer: { text: 'Usunięto wydarzenie', },
-                    timestamp: Date.parse(event.day),
-                }).catch(err => logger.error(err));
-            });
-        } else if (difference.length) { // event changed
-            difference.forEach((event) => {
-                sendWebhook({
-                    title: event.title,
-                    description: event.title,
-                    color: colorChanged,
-                    footer: { text: 'Zmieniono wydarzenie', },
-                    timestamp: Date.parse(event.day),
-                }).catch(err => logger.error(err));
-            });
-        } else {
-            logger.error(new Error('Could not get difference between old and new annoucements'));
-        }
+        added.forEach(event => {
+            sendWebhook({
+                title: event.title,
+                description: event.title,
+                color: colorAdded,
+                footer: { text: 'Dodano wydarzenie', },
+                timestamp: Date.parse(event.day),
+            }).catch(err => logger.error(err));
+        });
+
+        removed.forEach(event => {
+            sendWebhook({
+                title: event.title,
+                description: event.title,
+                color: colorRemoved,
+                footer: { text: 'Usunięto wydarzenie', },
+                timestamp: Date.parse(event.day),
+            }).catch(err => logger.error(err));
+        });
 
         calendar = newCalendar;
     }
