@@ -14,6 +14,8 @@ const client = new Librus();
 let announcements: Announcement[] = [];
 let calendar: CalendarEvent[] = [];
 let calendarMonth = new Date().getMonth();
+let luckyNumber: number;
+let studentIndex: number
 
 const differsBy = <T>(a: T[], b: T[], by: string): {removed: T[], added: T[]} => {
     return {
@@ -139,6 +141,19 @@ const checkInbox = async (): Promise<void> => {
     });
 }
 
+const checkLuckyNumber = async (): Promise<void> => {
+    logger.debug('Checking lucky number...');
+    const newLuckyNumber = await client.info.getLuckyNumber();
+    if (newLuckyNumber !== luckyNumber) {
+        luckyNumber = newLuckyNumber;
+
+        sendWebhook({
+            title: 'Szczęśliwy numer',
+            description: `# Szczęśliwym numerem jest: **${luckyNumber}**${luckyNumber === studentIndex ? '\n## ***Gratulacje! jesteś szczęśliwy!***' : ''}`,
+        }).catch((err: Error) => logger.error(err));
+    }
+}
+
 (async () => {
     logger.log({
         level: 'init',
@@ -155,6 +170,8 @@ const checkInbox = async (): Promise<void> => {
             message: 'Logged in!',
             color: 'greenBright',
         });
+
+        studentIndex = parseInt(accountInfo.student.index);
 
         logger.log({
             level: 'init',
@@ -174,6 +191,14 @@ const checkInbox = async (): Promise<void> => {
 
         logger.log({
             level: 'init',
+            message: 'Pre-fetching lucky number.',
+            color: 'gray',
+        });
+
+        luckyNumber = await client.info.getLuckyNumber();
+
+        logger.log({
+            level: 'init',
             message: 'Initialization done.',
             color: 'cyanBright',
         });
@@ -190,6 +215,7 @@ const checkInbox = async (): Promise<void> => {
             checkAnnouncements().catch(err => logger.error(err));
             checkCalendar().catch(err => logger.error(err));
             checkInbox().catch(err => logger.error(err));
+            checkLuckyNumber().catch(err => logger.error(err));
         }, 10 * 60 * 1000); // every 10 mins
     } else {
         logger.error(new Error('Failed to login.'));
