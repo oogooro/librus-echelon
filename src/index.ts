@@ -189,8 +189,6 @@ const checkLuckyNumber = async (): Promise<void> => {
 
         calendar = (await client.calendar.getCalendar()).flat();
 
-        console.log(calendar);
-
         logger.log({
             level: 'init',
             message: 'Pre-fetching lucky number.',
