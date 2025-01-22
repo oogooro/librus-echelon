@@ -91,7 +91,7 @@ const checkCalendar = async (): Promise<void> => {
     if (JSON.stringify(newCalendar) !== JSON.stringify(calendar)) {
         logger.debug(`Events differ`);
 
-        const difference = differsBy<CalendarEvent>(calendar, newCalendar, 'title');
+        const difference = differsBy<CalendarEvent>(calendar, newCalendar, 'id');
         const { added, removed } = difference;
 
         logger.debug(JSON.stringify(difference, null, 2));
@@ -188,6 +188,8 @@ const checkLuckyNumber = async (): Promise<void> => {
         });
 
         calendar = (await client.calendar.getCalendar()).flat();
+
+        console.log(calendar);
 
         logger.log({
             level: 'init',
