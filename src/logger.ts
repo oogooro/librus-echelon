@@ -1,4 +1,4 @@
-import Logger, { LoggerOptions } from 'log4uwu';
+import { Logger, LoggerOptions } from 'log4uwu';
 import moment from 'moment';
 
 const loggerOptions: LoggerOptions = {
