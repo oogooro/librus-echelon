@@ -15,26 +15,13 @@ let announcements: Announcement[] = [];
 let calendar: CalendarEvent[] = [];
 let calendarMonth = new Date().getMonth();
 let luckyNumber: number;
-let studentIndex: number
+let studentIndex: number;
 
-const differsBy = <T>(a: T[], b: T[], by: string): {removed: T[], added: T[]} => {
-    return {
-        removed: a.filter((c) => {
-            const c1 = c[by];
-            return !b.some((d) => {
-                const d1 = d[by];
-                return d1 === c1;
-            });
-        }),
-        added: b.filter((c) => {
-            const c1 = c[by];
-            return !a.some((d) => {
-                const d1 = d[by];
-                return d1 === c1;
-            });
-        }),
-    }
-}
+const findArrayDifferences = <T>(oldArray: T[], newArray: T[], property: keyof T): { removed: T[], added: T[] } => {
+    const removed = oldArray.filter(oldItem => !newArray.some(newItem => newItem[property] === oldItem[property]));
+    const added = newArray.filter(newItem => !oldArray.some(oldItem => oldItem[property] === newItem[property]));
+    return { removed, added };
+};
 
 const checkAnnouncements = async (): Promise<void> => {
     logger.debug('Checking announcements');
@@ -45,7 +32,7 @@ const checkAnnouncements = async (): Promise<void> => {
     if (JSON.stringify(announcements) !== JSON.stringify(newAnnouncements)) {
         logger.debug(`Announcements differ`);
 
-        const difference = differsBy<Announcement>(announcements, newAnnouncements, 'content');
+        const difference = findArrayDifferences<Announcement>(announcements, newAnnouncements, 'content');
         const { added, removed } = difference;
 
         logger.debug(JSON.stringify(difference, null, 2));
@@ -72,7 +59,7 @@ const checkAnnouncements = async (): Promise<void> => {
 
         announcements = newAnnouncements;
     }
-}
+};
 
 const checkCalendar = async (): Promise<void> => {
     logger.debug('Checking calendar...');
@@ -91,7 +78,7 @@ const checkCalendar = async (): Promise<void> => {
     if (JSON.stringify(newCalendar) !== JSON.stringify(calendar)) {
         logger.debug(`Events differ`);
 
-        const difference = differsBy<CalendarEvent>(calendar, newCalendar, 'id');
+        const difference = findArrayDifferences<CalendarEvent>(calendar, newCalendar, 'id');
         const { added, removed } = difference;
 
         logger.debug(JSON.stringify(difference, null, 2));
@@ -118,7 +105,7 @@ const checkCalendar = async (): Promise<void> => {
 
         calendar = newCalendar;
     }
-}
+};
 
 const checkInbox = async (): Promise<void> => {
     logger.debug('Checking inbox...');
@@ -139,7 +126,7 @@ const checkInbox = async (): Promise<void> => {
                 .catch((err: Error) => logger.error(err));
         }
     });
-}
+};
 
 const checkLuckyNumber = async (): Promise<void> => {
     logger.debug('Checking lucky number...');
@@ -152,7 +139,7 @@ const checkLuckyNumber = async (): Promise<void> => {
             description: `# Szczęśliwym numerem jest: **${luckyNumber}**${luckyNumber === studentIndex ? '\n## ***Gratulacje! jesteś szczęśliwy!***' : ''}`,
         }).catch((err: Error) => logger.error(err));
     }
-}
+};
 
 (async () => {
     logger.log({
