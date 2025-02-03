@@ -17,7 +17,7 @@
   "author": "oogooro",
   "license": "MIT",
   "devDependencies": {
-    "@types/lodash": "^4.17.14",
+    "@types/lodash": "^4.17.15",
     "cross-env": "^7.0.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
