@@ -17,9 +17,12 @@ let calendarMonth = new Date().getMonth();
 let luckyNumber: number;
 let studentIndex: number;
 
-const findArrayDifferences = <T>(oldArray: T[], newArray: T[], property: keyof T): { removed: T[], added: T[] } => {
-    const removed = oldArray.filter(oldItem => !newArray.some(newItem => newItem[property] === oldItem[property]));
-    const added = newArray.filter(newItem => !oldArray.some(oldItem => oldItem[property] === newItem[property]));
+const differsBy = <T>(a: T[], b: T[]): { removed: T[], added: T[] } => {
+    const aString = a.map((v) => JSON.stringify(v));
+    const bString = b.map((v) => JSON.stringify(v));
+
+    const removed = aString.filter((v) => !bString.includes(v)).map((v) => JSON.parse(v));
+    const added = bString.filter((v) => !aString.includes(v)).map((v) => JSON.parse(v));
     return { removed, added };
 };
 
@@ -32,7 +35,7 @@ const checkAnnouncements = async (): Promise<void> => {
     if (JSON.stringify(announcements) !== JSON.stringify(newAnnouncements)) {
         logger.debug(`Announcements differ`);
 
-        const difference = findArrayDifferences<Announcement>(announcements, newAnnouncements, 'content');
+        const difference = differsBy<Announcement>(announcements, newAnnouncements);
         const { added, removed } = difference;
 
         logger.debug(JSON.stringify(difference, null, 2));
@@ -78,7 +81,7 @@ const checkCalendar = async (): Promise<void> => {
     if (JSON.stringify(newCalendar) !== JSON.stringify(calendar)) {
         logger.debug(`Events differ`);
 
-        const difference = findArrayDifferences<CalendarEvent>(calendar, newCalendar, 'id');
+        const difference = differsBy<CalendarEvent>(calendar, newCalendar);
         const { added, removed } = difference;
 
         logger.debug(JSON.stringify(difference, null, 2));
