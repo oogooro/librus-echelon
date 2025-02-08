@@ -232,4 +232,4 @@ const checkLuckyNumber = async (): Promise<void> => {
     } else {
         logger.error(new Error('Failed to login.'));
     }
-})();
+})().catch(err => logger.error(err));
