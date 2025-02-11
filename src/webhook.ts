@@ -2,7 +2,6 @@ import { APIEmbed, EmbedBuilder, JSONEncodable, WebhookClient } from 'discord.js
 import { WebhookEmbedData } from './types/webhookEmbed';
 import logger from './logger';
 import { colorDefault } from './colors';
-import moment from 'moment';
 
 export const webhook = new WebhookClient({
     url: process.env.WEBHOOK_URL,
@@ -18,15 +17,11 @@ export const sendWebhook = async (data: WebhookEmbedData | WebhookEmbedData[]): 
             .setTitle(embedData.title)
             .setDescription(embedData.description)
             .setColor(embedData.color ?? colorDefault)
+            .setTimestamp(embedData.timestamp)
             .setURL(embedData.url);
 
         if (embedData.author?.name) embed.setAuthor(embedData.author);
-
-        let footerText = embedData.footer?.text ?? '';
-
-        if (embedData.timestamp) footerText += ` ∙ <t:${embedData.timestamp / 1000}:d> (${moment(embedData.timestamp).format('ddd')})`;
-
-        embed.setFooter({iconURL: embedData.footer.iconURL, text: footerText,});
+        if (embedData.footer?.text) embed.setFooter(embedData.footer);
         embeds.push(embed);
     }
 
