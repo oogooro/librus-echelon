@@ -43,16 +43,6 @@ const checkAnnouncements = async (): Promise<void> => {
 
         logger.debug(JSON.stringify(difference, null, 2));
 
-        added.forEach(announcement => {
-            embeds.push({
-                title: announcement.title,
-                description: announcement.content,
-                author: { name: announcement.user, },
-                color: colorAdded,
-                footer: { text: 'Dodano ogłoszenie', },
-            });
-        });
-
         removed.forEach(announcement => {
             embeds.push({
                 title: announcement.title,
@@ -60,6 +50,16 @@ const checkAnnouncements = async (): Promise<void> => {
                 author: { name: announcement.user, },
                 color: colorRemoved,
                 footer: { text: 'Usunięto ogłoszenie', },
+            });
+        });
+
+        added.forEach(announcement => {
+            embeds.push({
+                title: announcement.title,
+                description: announcement.content,
+                author: { name: announcement.user, },
+                color: colorAdded,
+                footer: { text: 'Dodano ogłoszenie', },
             });
         });
 
@@ -96,22 +96,22 @@ const checkCalendar = async (): Promise<void> => {
 
         logger.debug(JSON.stringify(difference, null, 2));
 
-        added.forEach(event => {
-            embeds.push({
-                title: event.title,
-                description: event.title,
-                color: colorAdded,
-                footer: { text: 'Dodano wydarzenie', },
-                timestamp: Date.parse(event.day),
-            });
-        });
-
         removed.forEach(event => {
             embeds.push({
                 title: event.title,
                 description: event.title,
                 color: colorRemoved,
                 footer: { text: 'Usunięto wydarzenie', },
+                timestamp: Date.parse(event.day),
+            });
+        });
+
+        added.forEach(event => {
+            embeds.push({
+                title: event.title,
+                description: event.title,
+                color: colorAdded,
+                footer: { text: 'Dodano wydarzenie', },
                 timestamp: Date.parse(event.day),
             });
         });
