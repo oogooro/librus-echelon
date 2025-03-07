@@ -9,6 +9,7 @@ import logger from './logger';
 import { CalendarEvent } from './types/calendar';
 import _ from 'lodash';
 import { WebhookEmbedData } from './types/webhookEmbed';
+import { Grade, SubjectGradesData } from './types/grades';
 
 const client = new Librus();
 
@@ -17,6 +18,7 @@ let calendar: CalendarEvent[] = [];
 let calendarMonth = new Date().getMonth();
 let luckyNumber: number;
 let studentIndex: number;
+let grades: Grade[] = [];
 
 const differsBy = <T>(a: T[], b: T[]): { removed: T[], added: T[] } => {
     const aString = a.map((v) => JSON.stringify(v));
@@ -25,6 +27,21 @@ const differsBy = <T>(a: T[], b: T[]): { removed: T[], added: T[] } => {
     const removed = aString.filter((v) => !bString.includes(v)).map((v) => JSON.parse(v));
     const added = bString.filter((v) => !aString.includes(v)).map((v) => JSON.parse(v));
     return { removed, added };
+};
+
+const getGrades = async (): Promise<Grade[]> => {
+    const subjectGrades = await client.info.getGrades() as SubjectGradesData[];
+    const tempGrades: Grade[] = [];
+
+    for (const subject of subjectGrades)
+        for (const semester of subject.semester)
+            for (const grade of semester.grades) tempGrades.push({
+                ...grade,
+                subject: subject.name,
+                url: `https://synergia.librus.pl/przegladaj_oceny/szczegoly/${grade.id}`,
+            });
+
+    return tempGrades;
 };
 
 const checkAnnouncements = async (): Promise<void> => {
@@ -166,6 +183,50 @@ const checkLuckyNumber = async (): Promise<void> => {
     }
 };
 
+const checkGrades = async (): Promise<void> => {
+    logger.debug('Checking grades');
+    const newGrades = await getGrades();
+
+    logger.debug(`Got ${newGrades.length}/${grades.length} grades`);
+
+    if (JSON.stringify(grades) !== JSON.stringify(newGrades)) {
+        logger.debug(`Grades differ`);
+        
+        const embeds: WebhookEmbedData[] = [];
+        const difference = differsBy<Grade>(grades, newGrades);
+        const { added, removed } = difference;
+        
+        logger.debug(JSON.stringify(difference, null, 2));
+        
+        added.forEach(grade => {
+            embeds.push({
+                title: `Dodano ocenę ${grade.value}`,
+                description: grade.info,
+                author: { name: grade.subject, },
+                url: grade.url,
+                color: colorAdded,
+            });
+        });
+
+        removed.forEach(grade => {
+            embeds.push({
+                title: `Usunięto ocenę ${grade.value}`,
+                description: grade.info,
+                author: { name: grade.subject, },
+                url: grade.url,
+                color: colorRemoved,
+            });
+        });
+
+        if (embeds.length) {
+            const chunkedEmbeds = _.chunk(embeds, 10);
+            for (const embedChunk of chunkedEmbeds) await sendWebhook(embedChunk).catch(err => logger.error(err));
+        }
+
+        grades = newGrades;
+    }
+};
+
 (async () => {
     logger.log({
         level: 'init',
@@ -211,6 +272,14 @@ const checkLuckyNumber = async (): Promise<void> => {
 
         logger.log({
             level: 'init',
+            message: 'Pre-fetching grades.',
+            color: 'gray',
+        });
+
+        grades = await getGrades();
+
+        logger.log({
+            level: 'init',
             message: 'Initialization done.',
             color: 'cyanBright',
         });
@@ -228,6 +297,7 @@ const checkLuckyNumber = async (): Promise<void> => {
             checkCalendar().catch(err => logger.error(err));
             checkInbox().catch(err => logger.error(err));
             checkLuckyNumber().catch(err => logger.error(err));
+            checkGrades().catch(err => logger.error(err));
         }, 10 * 60 * 1000); // every 10 mins
     } else {
         logger.error(new Error('Failed to login.'));
