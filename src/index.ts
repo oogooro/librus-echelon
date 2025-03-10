@@ -50,9 +50,8 @@ const checkAnnouncements = async (): Promise<void> => {
 
     logger.debug(`Got ${newAnnouncements.length}/${announcements.length} announcements`);
 
-    const embeds: WebhookEmbedData[] = [];
-    
     if (JSON.stringify(announcements) !== JSON.stringify(newAnnouncements)) {
+        const embeds: WebhookEmbedData[] = [];
         logger.debug(`Announcements differ`);
 
         const difference = differsBy<Announcement>(announcements, newAnnouncements);
@@ -103,9 +102,8 @@ const checkCalendar = async (): Promise<void> => {
 
     logger.debug(`Got ${newCalendar.length}/${calendar.length} calendar events`);
 
-    const embeds: WebhookEmbedData[] = [];
-
     if (JSON.stringify(newCalendar) !== JSON.stringify(calendar)) {
+        const embeds: WebhookEmbedData[] = [];
         logger.debug(`Events differ`);
 
         const difference = differsBy<CalendarEvent>(calendar, newCalendar);
