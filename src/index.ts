@@ -41,6 +41,7 @@ const getGrades = async (): Promise<Grade[]> => {
                 url: `https://synergia.librus.pl/przegladaj_oceny/szczegoly/${grade.id}`,
             });
 
+    tempGrades.sort((a, b) => a.id - b.id);
     return tempGrades;
 };
 
