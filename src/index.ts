@@ -11,6 +11,8 @@ import _ from 'lodash';
 import { WebhookEmbedData } from './types/webhookEmbed';
 import { Grade, SubjectGradesData } from './types/grades';
 
+import { writeFileSync } from 'node:fs';
+
 const client = new Librus();
 
 let announcements: Announcement[] = [];
@@ -169,9 +171,12 @@ const checkInbox = async (): Promise<void> => {
     }
 };
 
-const checkLuckyNumber = async (): Promise<void> => {
+const checkLuckyNumber = async (): Promise<boolean> => {
     logger.debug('Checking lucky number...');
     const newLuckyNumber = await client.info.getLuckyNumber();
+
+    if (newLuckyNumber == 0) return false;
+
     if (newLuckyNumber !== luckyNumber) {
         luckyNumber = newLuckyNumber;
 
@@ -180,6 +185,8 @@ const checkLuckyNumber = async (): Promise<void> => {
             description: `# Szczęśliwym numerem jest: **${luckyNumber}**${luckyNumber === studentIndex ? '\n## ***Gratulacje! jesteś szczęśliwy!***' : ''}`,
         }).catch((err: Error) => logger.error(err));
     }
+
+    return true;
 };
 
 const checkGrades = async (): Promise<void> => {
@@ -292,11 +299,22 @@ const checkGrades = async (): Promise<void> => {
         checkInbox().catch(err => logger.error(err));
 
         setInterval(() => {
-            checkAnnouncements().catch(err => logger.error(err));
-            checkCalendar().catch(err => logger.error(err));
-            checkInbox().catch(err => logger.error(err));
-            checkLuckyNumber().catch(err => logger.error(err));
-            checkGrades().catch(err => logger.error(err));
+            checkLuckyNumber()
+                .catch(err => logger.error(err))
+                .then(dataValid => {
+                    if (dataValid) {
+                        checkAnnouncements().catch(err => logger.error(err));
+                        checkCalendar().catch(err => logger.error(err));
+                        checkInbox().catch(err => logger.error(err));
+                        checkGrades().catch(err => logger.error(err));
+                    } else {
+                        logger.log({
+                            level: 'info',
+                            message: 'Librus is in maintenance mode',
+                            color: 'gray'
+                        });
+                    }
+                });
         }, 10 * 60 * 1000); // every 10 mins
     } else {
         logger.error(new Error('Failed to login.'));
